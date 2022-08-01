@@ -1,6 +1,6 @@
 <?php
-error_reporting(E_ALL);
-//error_reporting(0);
+//error_reporting(E_ALL);
+error_reporting(0);
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -9,8 +9,6 @@ require '../model/bd/configs.php';
 require '../model/Correo.class.php';
 require '../vendor/autoload.php';
 
-$dir_raiz = RAIZ;
-echo "DIR_RAIZ = ".$dir_raiz."<br>";
 $objCorreo = new Correo();
 
 
@@ -18,13 +16,15 @@ iniciar_test_correo($objCorreo);
 
 
 function iniciar_test_correo($objCorreo){
-    echo "ENTRO AL METODO iniciar_test_correo"."<br>";
+    //echo "ENTRO AL METODO iniciar_test_correo"."<br>";
 
     $resultados_envio = array();
+    $resultados_recepcion = array();
     $query = "SELECT id_cuenta_correo FROM cuenta_correo";
-    echo "query = ".$query."<br>";
+    //echo "query = ".$query."<br>";
     $ids_cuentas = $objCorreo->consultar($query);
 
+    //echo "PRIMERO SE EJECUTA EL ENVIO TODOS LOS CORREOS DE PRUEBA"."<br>";
     while ($row = mysqli_fetch_array($ids_cuentas)){
         $id_origen = $row['id_cuenta_correo'];
         echo "id_origen = ".$id_origen."<br>";
@@ -32,17 +32,414 @@ function iniciar_test_correo($objCorreo){
         $resultados_envio[$id_origen] = $resultados_envio_cuenta;
     }
 
-    var_dump($resultados_envio);
+    //echo "RESULTADOS DE TODOS LOS CORREOS ENVIADOS:"."<br>";
+    //var_dump($resultados_envio);
+    //echo "DESPUES SE HACE LA PAUSA POR EL TIEMPO DE LATENCIA ESTABLECIDO"."<br>";
+    pausar_tiempo_latencia($objCorreo);
 
+    //echo "LUEGO SE REALIZA LA LECTURA DE TODOS LOS CORREOS DE PRUEBA QUE HAYAN SIDO RECEPCIONADOS"."<br>";
+    $query = "SELECT id_cuenta_correo FROM cuenta_correo";
+    //echo "query = ".$query."<br>";
+    $ids_cuentas = $objCorreo->consultar($query);
+    while ($row = mysqli_fetch_array($ids_cuentas)){
+        $id_origen = $row['id_cuenta_correo'];
+        //echo "id_origen = ".$id_origen."<br>";
+        $resultados_envio_cuenta = $resultados_envio[$id_origen];
+        $resultados_recepcion_cuenta = comprobar_recepcion_correos_cuenta($id_origen,$resultados_envio_cuenta,$objCorreo);
+        $resultados_recepcion[$id_origen] = $resultados_recepcion_cuenta;
+    }
+    //echo "RESULTADOS DE TODOS LOS CORREOS RECIBIDOS:"."<br>";
+    //var_dump($resultados_recepcion);
+    //echo "HASTA ESTE PUNTO SE DEBERIAN EMPEZAR A IMPRIMIR LOS RESULTADOS EN LA PLANTILLA HTML"."<br>";
+    envio_correo_resultados_pruebas($resultados_envio,$resultados_recepcion,$objCorreo);
+
+
+}
+
+
+function envio_correo_resultados_pruebas($resultados_envio,$resultados_recepcion,$objCorreo){
+    //echo "ENTRO AL METODO envio_correo_resultados_pruebas"."<br>";
+    date_default_timezone_set("America/Bogota");
+    $cadena_mensaje = "";
+    $cuenta_origen = "testcorreotigo@hotmail.com";
+    //$cuenta_origen = "noresponder@registraduria.gov.co";
+    $password_origen = "Test@correo1";
+    //$password_origen = "rnec4746";
+    $cuenta_destino = "testcorreotigo@gmail.com";
+    //$cuenta_destino = "dmmancera@registraduria.gov.co";
+    $servidor_envio = "smtp.office365.com";
+    $puerto_envio = 587;
+
+    //echo "EL CONTENIDO DE LOS ARRAYS CON TODOS LOS RESULTADOS DE **ENVIOS** SON = "."<br>";
+    //var_dump($resultados_envio);
+    //echo "EL CONTENIDO DE LOS ARRAYS CON TODOS LOS RESULTADOS DE **RECEPCION** SON = "."<br>";
+    //var_dump($resultados_recepcion);
+    // Inicio
+    $mail = new PHPMailer(true);
+    $cadena_periodo = date("Y")."/".date("m")."/".date("d")." ".date("H").":00:00";
+    $nombre_asunto = "RESULTADOS PRUEBAS DE CORREOS / FRANJA DE EJECUCION: ".$cadena_periodo;
+    $nombre_destino = 'Mesa de ayuda Tigo';
+    $cadena_mensaje .= "<html><head><meta charset='UTF-8'></head><body><p>".date('a')=='am'?'Buenos dias':'Buenas tardes'." Ingenieros:</p>
+    <br><p>Reciban un cordial saludo,</p><br><p>Se realizan las siguientes pruebas de correo en la franja horaria de las : ".date('H').":00 HRS:"."</p>
+    <br><table border='1'><tr><td colspan='15' style='text-align: center; font-weight: bold;'>Pruebas de correo ejecutadas en la franja: ".$cadena_periodo."</td></tr>
+    <td style='text-align: center; font-weight: bold;'>Cuenta de correo de origen</td>
+    <td style='text-align: center; font-weight: bold;'>Fecha envio</td>
+    <td style='text-align: center; font-weight: bold;'>Diagnostico envio</td>
+    <td style='text-align: center; font-weight: bold;'>Error envio</td>
+    <td style='text-align: center; font-weight: bold;'>Fecha recepcion</td>
+    <td style='text-align: center; font-weight: bold;'>Diagnostico recibo</td>
+    <td style='text-align: center; font-weight: bold;'>Error recibo</td>
+    <td style='text-align: center; font-weight: bold;'>Tiempo latencia (seg)</td>
+    <td style='text-align: center; font-weight: bold;'>Fecha envio</td>
+    <td style='text-align: center; font-weight: bold;'>Diagnostico envio</td>
+    <td style='text-align: center; font-weight: bold;'>Error envio</td>
+    <td style='text-align: center; font-weight: bold;'>Fecha recepcion</td>
+    <td style='text-align: center; font-weight: bold;'>Diagnostico recibo</td>
+    <td style='text-align: center; font-weight: bold;'>Error recibo</td>
+    <td style='text-align: center; font-weight: bold;'>Tiempo latencia (seg)</td>";
+    for($i=1;$i<=count($resultados_envio);$i++){
+        $cadena_mensaje .= resultado_prueba_cuenta($resultados_envio[$i],$resultados_recepcion[$i],$i,$objCorreo);
+    }
+    $cadena_mensaje .= '</table><br><p>Lo anterior para su conocimiento y dem&aacute;s fines pertinentes.</p><br><p>Cordialmente</p><div><img src="data:image/png;base64,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" style="width=40%;"></div></body></html>';
+
+    try{
+        // Configuracion SMTP
+        //$mail->SMTPDebug = 3;
+        $mail->isSMTP();                                      // Set mailer to use SMTP
+        $mail->SMTPAuth = true;                                 // Enable SMTP authentication
+        $mail->SMTPOptions = array(
+            'ssl' => array(
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+                'allow_self_signed' => true
+            )
+        );                                                      // Activar envio SMTP
+
+        $mail->Host = $servidor_envio;
+        $mail->SMTPAuth = true;
+        $mail->Username = $cuenta_origen;  //Origen desde una cuenta de RNEC
+        $mail->Password  = $password_origen;
+        //$mail->SMTPSecure = 'tls';
+        //$mail->Port  = 587;
+        $mail->Port = $puerto_envio;
+        $mail->setFrom($cuenta_origen, $nombre_asunto);
+
+        // Destinatarios
+        $mail->addAddress($cuenta_destino, $nombre_destino);  // Email y nombre del destinatario
+
+        //cuentas adicionales a las que se envia el correo con los resultados de las pruebas
+        //$mail->addAddress("infraestructuratigo@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("lanyseguridadtigo@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("jreyez@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("monitoreo7x24@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("mogomez@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("jacamargo@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("admunoz@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("csrengifo@registraduria.gov.co", $nombre_destino);
+        //$mail->addAddress("planeta51@aol.com", $nombre_destino);
+
+        // Contenido del correo
+        $mail->isHTML(true);
+        $mail->Subject = $nombre_asunto;
+        $mail->Body = $cadena_mensaje;
+        $mail->AltBody = 'Contenido del correo en texto plano para los clientes de correo que no soporten HTML';
+        $mail->send();
+        $resultado = true;
+        //echo 'El mensaje se ha enviado'."<br>";
+
+    }catch(Exception $e){
+        //echo "El mensaje no se ha enviado. Mailer Error: {$mail->ErrorInfo}"."<br>";
+    }
+
+
+}
+
+
+function resultado_prueba_cuenta($resultados_envio_cuenta,$resultados_recepcion_cuenta,$id_origen,$objCorreo){
+    //echo "ENTRO AL METODO resultado_prueba_cuenta"."<br>";
+    $cadena_cuenta = "";
+    $cant_cols = 2;
+    $vacio = array();
+    //echo "RESULTADOS **ENVIO** ASOCIADOS A LA CUENTA CON id_origen = ".$id_origen."<br>";
+    //var_dump($resultados_envio_cuenta);
+    //echo "RESULTADOS **RECEPCION** ASOCIADOS A LA CUENTA CON id_origen = ".$id_origen."<br>";
+    //var_dump($resultados_recepcion_cuenta);
+    $query = "SELECT direccion_email, alias_cuenta_correo FROM cuenta_correo WHERE id_cuenta_correo = ".$id_origen."";
+    $resultado = $objCorreo->consultar_campos($query);
+    $cuenta_origen = $resultado['direccion_email'];
+    $alias_cuenta = $resultado['alias_cuenta_correo'];
+    $query = "SELECT count(*) AS cantidad FROM cuenta_correo";
+    $resultado = $objCorreo->consultar_campos($query);
+    $cant_cuentas = intval($resultado['cantidad']);
+    if($cant_cuentas > 2){
+        $cant_cols = intval($cant_cuentas % 2) == 0 ? $cant_cuentas : $cant_cuentas - 1;
+    }
+    //echo "cant_cols = ".$cant_cols."<br>";
+    $cadena_cuenta .= "<tr><td rowspan='$cant_cols' style='text-align: center; font-weight: bold;'>".$cuenta_origen."<br>(".$alias_cuenta.")"."</td>";
+    //echo "cadena_cuenta (solo cuenta origen) = ".$cadena_cuenta."<br>";
+    for($i=0,$j=1 ; $i<count($resultados_envio_cuenta) ; $i+=2,$j+=2){
+        //echo "----------------------------------------------";
+        //echo "ENVIANDO LOS RESULTADOS DE LA PRIMERA COLUMNA CON EL CONTADOR i = ".$i."<br>";
+        //var_dump($resultados_envio_cuenta[$i]);
+        //var_dump($resultados_recepcion_cuenta[$i]);
+        //echo "----------------------------------------------";
+        //echo "ENVIANDO LOS RESULTADOS DE LA SEGUNDA COLUMNA CON EL CONTADOR j = ".$j."<br>";
+        //var_dump($resultados_envio_cuenta[$j]);
+        //var_dump($resultados_recepcion_cuenta[$j]);
+        //echo "----------------------------------------------";
+        $cadena_cuenta .= resultado_envio_recepcion($resultados_envio_cuenta[$i],$resultados_recepcion_cuenta[$i],$resultados_envio_cuenta[$j],$resultados_recepcion_cuenta[$j]);
+    }
+    //echo "cadena_cuenta (con resultados pruebas) = ".$cadena_cuenta."<br>";
+    return $cadena_cuenta;
+}
+
+
+
+function resultado_envio_recepcion($resultado_prueba_envio_1,$resultado_prueba_recepcion_1,$resultado_prueba_envio_2 = null,$resultado_prueba_recepcion_2 = null){
+    //echo "ENTRO AL METODO resultado_envio_recepcion"."<br>";
+    $fila_completa = "";
+    $cadena_pruebas = "";
+    $color_prueba_envio_2 = "";
+    $color_prueba_recepcion_2 = "";
+    $color_prueba_envio_1 = $resultado_prueba_envio_1[11] == "Envio exitoso" ? "#3CFF33" :"#FF5833";
+
+    //echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+    //echo "RESULTADO DE LA PRUEBA DE **ENVIO** PRIMERA COLUMNA **PARA IMPRIMIR**"."<br>";
+    //var_dump($resultado_prueba_envio_1);
+    //echo "RESULTADO DE LA PRUEBA DE **RECEPCION** PRIMERA COLUMNA **PARA IMPRIMIR**"."<br>";
+    //var_dump($resultado_prueba_recepcion_1);
+    //echo "RESULTADO DE LA PRUEBA DE **ENVIO** SEGUNDA COLUMNA **PARA IMPRIMIR**"."<br>";
+    //var_dump($resultado_prueba_envio_2);
+    //echo "RESULTADO DE LA PRUEBA DE **RECEPCION** SEGUNDA COLUMNA **PARA IMPRIMIR**"."<br>";
+    //var_dump($resultado_prueba_recepcion_2);
+    //echo "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++";
+
+    if($resultado_prueba_recepcion_1[3] == "NO ESTABLECIDA"){
+        $color_prueba_recepcion_1 = "#FF5833";
+    }else{
+        $color_prueba_recepcion_1 = "#3CFF33";
+    }
+
+    if($resultado_prueba_envio_2 != null){
+        //echo "EL SEGUNDO ARRAY **NO** ESTA VACIO"."<br>";
+        $fila_completa = true;
+        $color_prueba_envio_2 = $resultado_prueba_envio_2[11] == "Envio exitoso" ? "#3CFF33" :"#FF5833";
+        if($resultado_prueba_recepcion_2[3] == "NO ESTABLECIDA"){
+            $color_prueba_recepcion_2 = "#FF5833";
+        }else{
+            $color_prueba_recepcion_2 = "#3CFF33";
+        }
+    }else{
+        //echo "EL SEGUNDO ARRAY **SI** ESTA VACIO"."<br>";
+        $fila_completa = false;
+    }
+
+    //echo "FILA COMPLETA ? ";
+    //echo $fila_completa == true ? "TRUE"."<br>":"FALSE"."<br>";
+
+    if($fila_completa == true){
+        //echo "ENCONTRE UNA FILA **COMPLETA** CON LOS RESULTADOS DE LAS DOS PRUEBAS EJECUTADAS"."<br>";
+        /***************************************************************PRIMERA FILA*******************************************************************************************************/
+        $cadena_pruebas .= "<td colspan='7' style='text-align: center; font-weight: bold;'>".$resultado_prueba_envio_1[3]."<br>"."(".$resultado_prueba_envio_1[13].")"."</td>";  //ENCABEZADO DE LAS 7 COLUMNAS (1-7) CON LA CUENTA DE DESTINO 1
+        $cadena_pruebas .= "<td colspan='7' style='text-align: center; font-weight: bold;'>".$resultado_prueba_envio_2[3]."<br>"."(".$resultado_prueba_envio_2[13].")"."</td>";  //ENCABEZADO DE LAS 7 COLUMNAS (8-14) CON LA CUENTA DE DESTINO 2
+        $cadena_pruebas .= "</tr>";
+        /***************************************************************SEGUNDA FILA*******************************************************************************************************/
+        $cadena_pruebas .= "<tr><td style='text-align: center;'>".$resultado_prueba_envio_1[6]."</td>";  //DATO CON LA FECHA DE ENVIO PARA LA CUENTA DE DESTINO 1 (COL-1)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_envio_1.";'>".$resultado_prueba_envio_1[11]."</td>";  //DATO CON EL DIAGNOSTICO DE ENVIO PARA LA CUENTA DE DESTINO 1 (COL-2)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_envio_1.";'>".$resultado_prueba_envio_1[7]."</td>";    // DATO CON EL ERROR DE ENVIO PARA LA CUENTA DE DESTINO 1 (COL-3)
+        $cadena_pruebas .= "<td style='text-align: center;'>".$resultado_prueba_recepcion_1[3]."</td>"; //DATO CON LA FECHA DE RECEPCION PARA LA CUENTA DE DESTINO 1 (COL-4)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[5]."</td>"; //DATO CON EL DIAGNOSTICO DE RECIBO PARA LA CUENTA DE DESTINO 1 (COL-5)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[4]."</td>"; //DATO CON EL ERROR DE RECIBO PARA LA CUENTA DE DESTINO 1 (COL-6)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[2]."</td>"; //DATO CON EL TIEMPO DE LATENCIA ESTABLECIDO PARA LA CUENTA DE DESTINO 1 (COL-7)
+        $cadena_pruebas .= "<td style='text-align: center;'>".$resultado_prueba_envio_2[6]."</td>";  //DATO CON LA FECHA DE ENVIO PARA LA CUENTA DE DESTINO 2 (COL-8)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_envio_2.";'>".$resultado_prueba_envio_2[11]."</td>";  //DATO CON EL DIAGNOSTICO DE ENVIO PARA LA CUENTA DE DESTINO 2 (COL-9)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_envio_2.";'>".$resultado_prueba_envio_2[7]."</td>";  // DATO CON EL ERROR DE ENVIO PARA LA CUENTA DE DESTINO 2 (COL-10)
+        $cadena_pruebas .= "<td style='text-align: center;'>".$resultado_prueba_recepcion_2[3]."</td>"; //DATO CON LA FECHA DE RECEPCION PARA LA CUENTA DE DESTINO 2 (COL-11)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_2.";'>".$resultado_prueba_recepcion_2[5]."</td>"; //DATO CON EL DIAGNOSTICO DE RECIBO PARA LA CUENTA DE DESTINO 2 (COL-12)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_recepcion_2.";'>".$resultado_prueba_recepcion_2[4]."</td>"; //DATO CON EL ERROR DE RECIBO PARA LA CUENTA DE DESTINO 2 (COL-13)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_2.";'>".$resultado_prueba_recepcion_2[2]."</td></tr>"; //DATO CON EL TIEMPO DE LATENCIA ESTABLECIDO PARA LA CUENTA DE DESTINO 2 (COL-14)
+        $cadena_pruebas .= "</tr>";
+    }else{
+        //echo "ENCONTRE UNA FILA **INCOMPLETA** CON LOS RESULTADOS DE UNA SOLA PRUEBA EJECUTADA"."<br>";
+        /***************************************************************PRIMERA FILA*******************************************************************************************************/
+        $cadena_pruebas .= "<td colspan='7' style='text-align: center; font-weight: bold;'>".$resultado_prueba_envio_1[3]."<br>"."(".$resultado_prueba_envio_1[13].")"."</td>";  //ENCABEZADO DE LAS 7 COLUMNAS (1-7) CON LA CUENTA DE DESTINO 1
+        $cadena_pruebas .= "<td colspan='7'></td>";  //ENCABEZADO DE LAS 7 COLUMNAS (8-14) SIN DATO ASOCIADO
+        $cadena_pruebas .= "</tr>";
+        /***************************************************************SEGUNDA FILA*******************************************************************************************************/
+        $cadena_pruebas .= "<tr><td style='text-align: center;'>".$resultado_prueba_envio_1[6]."</td>";  //DATO CON LA FECHA DE ENVIO PARA LA CUENTA DE DESTINO 1 (COL-1)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_envio_1.";'>".$resultado_prueba_envio_1[11]."</td>";  //DATO CON EL DIAGNOSTICO DE ENVIO PARA LA CUENTA DE ORIGEN 1 (COL-2)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_envio_1.";'>".$resultado_prueba_envio_1[7]."</td>";    // DATO CON EL ERROR DE ENVIO PARA LA CUENTA DE ORIGEN 1 (COL-3)
+        $cadena_pruebas .= "<td style='text-align: center;'>".$resultado_prueba_recepcion_1[3]."</td>"; //DATO CON LA FECHA DE RECEPCION PARA LA CUENTA DE DESTINO 1 (COL-4)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[5]."</td>"; //DATO CON EL DIAGNOSTICO DE RECIBO PARA LA CUENTA DE DESTINO 1 (COL-5)
+        $cadena_pruebas .= "<td style='background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[4]."</td>"; //DATO CON EL ERROR DE RECIBO PARA LA CUENTA DE DESTINO 1 (COL-6)
+        $cadena_pruebas .= "<td style='text-align: center; background-color: ".$color_prueba_recepcion_1.";'>".$resultado_prueba_recepcion_1[2]."</td>"; //DATO CON EL TIEMPO DE LATENCIA ESTABLECIDO PARA LA CUENTA DE DESTINO 1 (COL-7)
+        $cadena_pruebas .= "<td></td>";  //DATO CON LA FECHA DE ENVIO PARA LA CUENTA DE DESTINO 2 (COL-8) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td>";  //DATO CON EL DIAGNOSTICO DE ENVIO PARA LA CUENTA DE ORIGEN 2 (COL-9) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td>";  // DATO CON EL ERROR DE ENVIO PARA LA CUENTA DE ORIGEN 2 (COL-10) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td>"; //DATO CON LA FECHA DE RECEPCION PARA LA CUENTA DE DESTINO 2 (COL-11) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td>"; //DATO CON EL DIAGNOSTICO DE RECIBO PARA LA CUENTA DE DESTINO 2 (COL-12) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td>"; //DATO CON EL ERROR DE RECIBO PARA LA CUENTA DE DESTINO 2 (COL-13) SIN DATO ASOCIADO
+        $cadena_pruebas .= "<td></td></tr>"; //DATO CON EL TIEMPO DE LATENCIA ESTABLECIDO PARA LA CUENTA DE DESTINO 2 (COL-14) SIN DATO ASOCIADO
+        $cadena_pruebas .= "</tr>";
+    }
+
+
+    //echo "cadena_pruebas (fila completa) = ".$cadena_pruebas."<br>";
+    return $cadena_pruebas;
+}
+
+
+
+function comprobar_recepcion_correos_cuenta($id_origen,$resultados_envio_cuenta,$objCorreo){
+    //echo "ENTRO AL METODO comprobar_recepcion_correos_cuenta"."<br>";
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "id_origen = ".$id_origen."<br>";
+    $resultados_pruebas_recepcion = array();
+    $cadena_ast = "*****************************************************************************************************************************************************";
+    for($i=0;$i<count($resultados_envio_cuenta);$i++){
+        imprimir_cadena_astericos($cadena_ast,2);
+        $resultados_envio = $resultados_envio_cuenta[$i];
+        //echo "EL RESULTADO (".$i.") PARA LA CUENTA CON id_origen = (".$id_origen.") TIENE LAS SIGUIENTES VARIABLES = "."<br>";
+        $resultado_recepcion = recepcion_correo_cuenta($resultados_envio,$objCorreo);
+        //var_dump($resultado_recepcion);
+        array_push($resultados_pruebas_recepcion,$resultado_recepcion);
+        //echo "RESULTADO PRUEBA RECEPCION = ".$resultado_recepcion[6];
+        //echo $resultado_recepcion[0] == true ? " EXITOSA"."<br>" : " FALLIDA"."<br>";
+        //echo "MENSAJE DE RECEPCION DEL CORREO = ".$resultado_recepcion[1]."<br>";
+        //echo "TIEMPO DE LATENCIA: ".$resultado_recepcion[2]." SEGUNDOS"."<br>";
+        //echo "FECHA Y HORA DE EJECUCION DE LA PRUEBA DE RECEPCION: ".$resultado_recepcion[3]."<br>";
+        imprimir_cadena_astericos($cadena_ast,2);
+    }
+    return $resultados_pruebas_recepcion;
+}
+
+
+function recepcion_correo_cuenta($resultado_prueba_envio,$objCorreo){
+    //echo "ENTRO AL METODO recepcion_correo_cuenta"."<br>";
+    $formato = 'Y-m-d H:i:s';
+    date_default_timezone_set("America/Bogota");
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "nombre_prueba = ".$resultado_prueba_envio[1]."<br>";
+    //echo "servidor_imap = ".$resultado_prueba_envio[8]."<br>";
+    //echo "cuenta_origen = ".$resultado_prueba_envio[2]."<br>";
+    //echo "cuenta_destino = ".$resultado_prueba_envio[3]."<br>";
+    //echo "password_destino = ".$resultado_prueba_envio[4]."<br>";
+    //echo "asunto = ".$resultado_prueba_envio[5]."<br>";
+    //echo "fecha_hora_envio = ".$resultado_prueba_envio[6]."<br>";
+    //echo "error_envio = ".$resultado_prueba_envio[7]."<br>";
+    //echo "tiempo_limite = ".$resultado_prueba_envio[9]."<br>";
+    //echo "id_prueba_env_rec = ".$resultado_prueba_envio[10]."<br>";
+    //echo "diagnostico_envio = ".$resultado_prueba_envio[11]."<br>";
+    $hostname = $resultado_prueba_envio[8];
+    $username = $resultado_prueba_envio[3];
+    $password = $resultado_prueba_envio[4];
+    $asunto = $resultado_prueba_envio[5];
+    $fecha_envio = $resultado_prueba_envio[6];
+    $error_envio = $resultado_prueba_envio[7];
+    $tiempo_limite = $resultado_prueba_envio[9];
+    $id_prueba = $resultado_prueba_envio[10];
+    $diagnostico_envio = $resultado_prueba_envio[11];
+    $cuenta_origen = $resultado_prueba_envio[2];
+    $nombre_prueba = $resultado_prueba_envio[1];
+    $resultado_recepcion = false;
+    $mensaje = "";
+    $diagnostico_recibo = "Recibo exitoso";
+    //$tiempo_latencia = 0;
+    $cadena_periodo = "";
+    $correo_valido = false;
+    $fecha_hora_arrivo = "";
+    //$intervalo = 10;
+    //$tiempo_fraccion = 0;
+    //$arrivo_correo = "";
+    $error_conexion = "";
+    $error_recibo = "Sin error de recibo";
+    $inbox = false;
+
+
+    try{
+        $inbox = imap_open($hostname,$username,$password);
+        //echo "¿ES POSIBLE ABRIR EL INBOX DEL SERVIDOR = ".$hostname."? ";
+        //echo $inbox == true ? "TRUE"."<br>" : "FALSE"."<br>";
+        $emails = imap_search($inbox, 'SUBJECT "TEST DE CORREO" UNSEEN'); //ESTE FILTRO FUNCIONA
+        //echo "¿HAY CORREOS SIN LEER CON EL ASUNTO TEST DE CORREO? ";
+        //echo $emails == true ? "TRUE"."<br>" : "FALSE"."<br>";
+        //print_r($emails);
+
+        if($emails){
+            //echo "**SI** HAY NUEVOS CORREOS EN LA BANDEJA DE ENTRADA POR LO QUE AHORA PROCEDO A BUSCAR EL CORREO COINCIDENTE DE PRUEBA QUE HABIA SIDO ENVIADO"."<br>";
+            $correo_valido = buscar_correo_coincidente($emails,$inbox,$asunto);
+            if($correo_valido == true){
+                //echo "**SI** ENCONTRE EL CORREO DE PRUEBA COINCIDENTE QUE ESTABA BUSCANDO DESPUES DE QUE HAN TRANSCURRIDO (".$tiempo_limite.") SEGUNDOS"."<br>";
+                $fecha_hora_arrivo = date($formato);
+                $mensaje = "El mensaje de correo proveniente de la cuenta (".$cuenta_origen.") ha sido recibido con exito para la prueba ejecutada en la fecha (".$fecha_envio.")";
+                $resultado_recepcion = true;
+            }else{
+                //echo "**NO** ENCONTRE EL CORREO COINCIDENTE QUE ESTABA BUSCANDO DESPUES DE HABER ESPERADO POR ".$tiempo_limite." SEGUNDOS"."<br>";
+            }
+        }else{
+            //echo "**NO** HAY CORREOS NUEVOS EN LA BANDEJA DE ENTRADA DESPUES DE ESPERAR POR".$tiempo_limite." SEGUNDOS"."<br>";
+        }
+
+    }catch(Exception $e){
+        //echo "**NO** HAY CONEXION CON EL BUZON DE LA CUENTA CON LAS CREDENCIALES username = ".$username." / password = ".$password." MEDIANTE EL SERVIDOR hostname = ".$hostname."<br>";
+        $error_conexion = "Se detecta el siguiente error: ".imap_last_error();
+        //echo "EL ERROR DETECTADO DURANTE LA CONEXION error_conexion = ".$error_conexion."<br>";
+    }
+
+    //echo "¿CORREO ENCONTRADO? ";
+    //echo $resultado_recepcion == true ? "TRUE"."<br>" : "FALSE"."<br>";
+
+    if($resultado_recepcion == false){
+        //echo "DESPUES DE ESPERAR POR ".$tiempo_limite." SEGUNDOS SE COMPRUEBA QUE NO HA LLEGADO EL CORREO DE PRUEBA ESPERADO, ASI QUE NOTIFICO ESTE ERROR"."<br>";
+        $diagnostico_recibo = "Recibo fallido";
+        $fecha_hora_arrivo = "NO ESTABLECIDA";
+        if($error_conexion != ""){
+            $error_recibo = $error_conexion;
+            $mensaje = "El mensaje de correo proveniente de la cuenta (".$cuenta_origen.") no ha sido recibido para la prueba ejecutada en la fecha (".$fecha_envio.") debido al siguiente error de conexion al buzon: ".$error_recibo;
+        }else{
+            $error_recibo = "No ha llegado el correo de prueba dentro del limite de tiempo de latencia establecido que corresponde a (".$tiempo_limite.") segundos";
+            $mensaje = "El mensaje de correo proveniente de la cuenta (".$cuenta_origen.") no ha sido recibido para la prueba ejecutada en la fecha (".$fecha_envio.")";
+
+        }
+    }
+
+    $cadena_periodo = date("Y")."/".date("m")."/".date("d")." ".date("H").":00:00";
+    //echo "AL FINAL DEBO INSERTAR EL REGISTRO DE LA PRUEBA EJECUTADA EN LA BASE DE DATOS CON LOS SIGUIENTES RESULTADOS DE LA RECEPCION:"."<br>";
+    //echo "cadena_periodo = ".$cadena_periodo."<br>";
+    //echo "fecha_hora_envio = ".$fecha_envio."<br>";
+    //echo "diagnostico_envio = ".$diagnostico_envio."<br>";
+    //echo "error_envio = ".$error_envio."<br>";
+    //echo "fecha_recepcion = ".$fecha_hora_arrivo."<br>";
+    //echo "diagnostico_recibo = ".$diagnostico_recibo."<br>";
+    //echo "error_recibo = ".$error_recibo."<br>";
+    //echo "tiempo_latencia = ".$tiempo_limite."<br>";
+    //echo "mensaje = ".$mensaje."<br>";
+    //echo "id_prueba = ".$id_prueba."<br>";
+    //echo "nombre_prueba = ".$nombre_prueba."<br>";
+    insertar_prueba_ejecutada($objCorreo,$cadena_periodo,$fecha_envio,$error_envio,$fecha_hora_arrivo,$tiempo_limite,$mensaje,$id_prueba,$error_recibo,$diagnostico_envio,$diagnostico_recibo);
+    $resultado_prueba = array($resultado_recepcion,$mensaje,$tiempo_limite,$fecha_hora_arrivo,$error_recibo,$diagnostico_recibo,$nombre_prueba);
+    return $resultado_prueba;
+}
+
+
+function pausar_tiempo_latencia($objCorreo){
+    //echo "ENTRO AL METODO pausar_tiempo_latencia"."<br>";
+    $query = "SELECT tiempo_limite FROM prueba_envio_recepcion WHERE id_prueba_env_rec = 1";
+    $resultado = $objCorreo->consultar_campos($query);
+    $tiempo_latencia = $resultado['tiempo_limite'];
+    //echo "tiempo_latencia = ".$tiempo_latencia."<br>";
+    //echo "**ANTES** DE ESPERAR POR ".$tiempo_latencia." SEGUNDOS"."<br>";
+    sleep($tiempo_latencia);
+    //echo "**DESPUES** DE ESPERAR POR ".$tiempo_latencia." SEGUNDOS"."<br>";
 }
 
 
 
 
 function ejecutar_envio_correos($id_origen,$objCorreo){
-    echo "ENTRO AL METODO ejecutar_envio_correos"."<br>";
-    echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
-    echo "id_origen = ".$id_origen."<br>";
+    //echo "ENTRO AL METODO ejecutar_envio_correos"."<br>";
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "id_origen = ".$id_origen."<br>";
     $resultados_pruebas_envio = array();
     $cadena_ast = "*****************************************************************************************************************************************************";
     $ids_pruebas = consultar_ids_otras_cuentas($id_origen,$objCorreo);
@@ -52,13 +449,13 @@ function ejecutar_envio_correos($id_origen,$objCorreo){
         $datos_prueba = consultar_datos_prueba($id_origen,$id_destino,$objCorreo);
         $resultado_envio = enviar_correo_prueba($datos_prueba,$objCorreo);
         array_push($resultados_pruebas_envio,$resultado_envio);
-        echo "RESULTADO PRUEBA ENVIO = ".$resultado_envio[1];
-        echo $resultado_envio[0] == true ? " EXITOSA"."<br>" : " FALLIDA"."<br>";
-        echo "CUENTA ORIGEN = ".$resultado_envio[2]."<br>";
-        echo "CUENTA DESTINO = ".$resultado_envio[3]."<br>";
-        echo "ASUNTO DEL CORREO DE PRUEBA = ".$resultado_envio[5]."<br>";
-        echo "FECHA Y HORA DE EJECUCION DE LA PRUEBA DE ENVIO: ".$resultado_envio[6]."<br>";
-        echo "ERROR DETECTADO: ".$resultado_envio[7]."<br>";
+        //echo "RESULTADO PRUEBA ENVIO = ".$resultado_envio[1];
+        //echo $resultado_envio[0] == true ? " EXITOSA"."<br>" : " FALLIDA"."<br>";
+        //echo "CUENTA ORIGEN = ".$resultado_envio[2]."<br>";
+        //echo "CUENTA DESTINO = ".$resultado_envio[3]."<br>";
+        //echo "ASUNTO DEL CORREO DE PRUEBA = ".$resultado_envio[5]."<br>";
+        //echo "FECHA Y HORA DE EJECUCION DE LA PRUEBA DE ENVIO: ".$resultado_envio[6]."<br>";
+        //echo "ERROR DETECTADO: ".$resultado_envio[7]."<br>";
         imprimir_cadena_astericos($cadena_ast,2);
     }
     return $resultados_pruebas_envio;
@@ -68,17 +465,17 @@ function ejecutar_envio_correos($id_origen,$objCorreo){
 
 
 function consultar_ids_otras_cuentas($id_origen,$objCorreo){
-    echo "ENTRO AL METODO consultar_ids_otras_cuentas"."<br>";
-    echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
-    echo "id_origen = ".$id_origen."<br>";
+    //echo "ENTRO AL METODO consultar_ids_otras_cuentas"."<br>";
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "id_origen = ".$id_origen."<br>";
     $ids_destino = array();
     $query = "SELECT id_cuenta_correo FROM cuenta_correo WHERE id_cuenta_correo NOT IN(".$id_origen.")";
-    echo "query = ".$query."<br>";
+    //echo "query = ".$query."<br>";
     $resultado = $objCorreo->consultar($query);
 
     while ($row = mysqli_fetch_array($resultado)){
         $id_destino = $row['id_cuenta_correo'];
-        echo "id_destino = ".$id_destino."<br>";
+        //echo "id_destino = ".$id_destino."<br>";
         array_push($ids_destino,$id_destino);
     }
     return $ids_destino;
@@ -86,18 +483,18 @@ function consultar_ids_otras_cuentas($id_origen,$objCorreo){
 
 
 function consultar_datos_prueba($id_origen,$id_destino,$objCorreo){
-    echo "ENTRO AL METODO consultar_datos_prueba"."<br>";
-    echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
-    echo "id_origen = ".$id_origen."<br>";
-    echo "id_destino = ".$id_destino."<br>";
+    //echo "ENTRO AL METODO consultar_datos_prueba"."<br>";
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "id_origen = ".$id_origen."<br>";
+    //echo "id_destino = ".$id_destino."<br>";
     $query = "SELECT * FROM prueba_envio_recepcion WHERE id_correo_origen = '".$id_origen."' AND id_correo_destino = '".$id_destino."'";
     $resultado = $objCorreo->consultar_campos($query);
     $id_prueba_env_rec = $resultado['id_prueba_env_rec'];
     $nombre_prueba = $resultado['nombre_prueba'];
     $tiempo_limite = $resultado['tiempo_limite'];
-    echo "id_prueba_env_rec = ".$id_prueba_env_rec."<br>";
-    echo "nombre_prueba = ".$nombre_prueba."<br>";
-    echo "tiempo_limite = ".$tiempo_limite."<br>";
+    //echo "id_prueba_env_rec = ".$id_prueba_env_rec."<br>";
+    //echo "nombre_prueba = ".$nombre_prueba."<br>";
+    //echo "tiempo_limite = ".$tiempo_limite."<br>";
     $respuesta = array($id_prueba_env_rec,$nombre_prueba,$tiempo_limite,$id_origen,$id_destino);
     return $respuesta;
 }
@@ -105,18 +502,18 @@ function consultar_datos_prueba($id_origen,$id_destino,$objCorreo){
 
 
 function enviar_correo_prueba($datos_prueba,$objCorreo){
-    echo "ENTRO AL METODO envio_correo"."<br>";
-    echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
+    //echo "ENTRO AL METODO envio_correo"."<br>";
+    //echo "RECIBO LAS SIGUIENTES VARIABLES:"."<br>";
     $id_prueba_env_rec = $datos_prueba[0];
     $nombre_prueba = $datos_prueba[1];
     $tiempo_limite = $datos_prueba[2];
     $id_origen = $datos_prueba[3];
     $id_destino = $datos_prueba[4];
-    echo "id_prueba_env_rec = ".$id_prueba_env_rec."<br>";
-    echo "nombre_prueba = ".$nombre_prueba."<br>";
-    echo "tiempo_limite = ".$tiempo_limite."<br>";
-    echo "id_origen = ".$id_origen."<br>";
-    echo "id_destino = ".$id_destino."<br>";
+    //echo "id_prueba_env_rec = ".$id_prueba_env_rec."<br>";
+    //echo "nombre_prueba = ".$nombre_prueba."<br>";
+    //echo "tiempo_limite = ".$tiempo_limite."<br>";
+    //echo "id_origen = ".$id_origen."<br>";
+    //echo "id_destino = ".$id_destino."<br>";
 
     $datos_envio = consultar_cuenta_correo($id_origen,$objCorreo);
     $datos_recepcion = consultar_cuenta_correo($id_destino,$objCorreo);
@@ -131,16 +528,16 @@ function enviar_correo_prueba($datos_prueba,$objCorreo){
     $password_destino = $datos_recepcion[2];
     $servidor_recepcion = $datos_recepcion[5];
     $puerto_recepcion = $datos_recepcion[6];
-    echo "alias_cuenta_envio = ".$alias_cuenta_envio."<br>";
-    echo "cuenta_origen = ".$cuenta_origen."<br>";
-    echo "password_origen = ".$password_origen."<br>";
-    echo "servidor_envio = ".$servidor_envio."<br>";
-    echo "puerto_envio = ".$puerto_envio."<br>";
-    echo "alias_cuenta_recepcion = ".$alias_cuenta_recepcion."<br>";
-    echo "cuenta_destino = ".$cuenta_destino."<br>";
-    echo "password_destino = ".$password_destino."<br>";
-    echo "servidor_recepcion = ".$servidor_recepcion."<br>";
-    echo "puerto_recepcion = ".$puerto_recepcion."<br>";
+    //echo "alias_cuenta_envio = ".$alias_cuenta_envio."<br>";
+    //echo "cuenta_origen = ".$cuenta_origen."<br>";
+    //echo "password_origen = ".$password_origen."<br>";
+    //echo "servidor_envio = ".$servidor_envio."<br>";
+    //echo "puerto_envio = ".$puerto_envio."<br>";
+    //echo "alias_cuenta_recepcion = ".$alias_cuenta_recepcion."<br>";
+    //echo "cuenta_destino = ".$cuenta_destino."<br>";
+    //echo "password_destino = ".$password_destino."<br>";
+    //echo "servidor_recepcion = ".$servidor_recepcion."<br>";
+    //echo "puerto_recepcion = ".$puerto_recepcion."<br>";
 
     $mail = new PHPMailer(true);
     $resultado = false;
@@ -199,12 +596,12 @@ function enviar_correo_prueba($datos_prueba,$objCorreo){
         </html>';
         $mail->AltBody = 'Contenido del correo en texto plano para los clientes de correo que no soporten HTML';
         $mail->send();
-        echo 'El mensaje se ha enviado'."<br>";
+        //echo 'El mensaje se ha enviado'."<br>";
         $resultado = true;
     }catch(Exception $e){
         $diagnostico_envio = "Envio fallido";
         $error_detectado = "Se detecta el siguiente error: ".$mail->ErrorInfo;
-        echo "El mensaje no se ha enviado. Mailer Error: {$mail->ErrorInfo}"."<br>";
+        //echo "El mensaje no se ha enviado. Mailer Error: {$mail->ErrorInfo}"."<br>";
     }
 
     $resultado_prueba = array($resultado,$nombre_prueba,$cuenta_origen,$cuenta_destino,$password_destino,$asunto,$fecha_hora_envio,$error_detectado,$servidor_recepcion,$tiempo_limite,$id_prueba_env_rec,$diagnostico_envio,$alias_cuenta_envio,$alias_cuenta_recepcion);
@@ -215,10 +612,10 @@ function enviar_correo_prueba($datos_prueba,$objCorreo){
 
 
 function consultar_cuenta_correo($id_cuenta,$objCorreo){
-    echo "ENTRO AL METODO consultar_cuenta_correo"."<br>";
-    echo "RECIBO EL id_cuenta = ".$id_cuenta."<br>";
+    //echo "ENTRO AL METODO consultar_cuenta_correo"."<br>";
+    //echo "RECIBO EL id_cuenta = ".$id_cuenta."<br>";
     $query = "SELECT * FROM cuenta_correo WHERE id_cuenta_correo = '".$id_cuenta."'";
-    echo "query = ".$query."<br>";
+    //echo "query = ".$query."<br>";
     $resultado = $objCorreo->consultar_campos($query);
     $alias_cuenta = $resultado['alias_cuenta_correo'];
     $email = $resultado['direccion_email'];
@@ -227,91 +624,93 @@ function consultar_cuenta_correo($id_cuenta,$objCorreo){
     $pt_smtp = $resultado['puerto_smtp'];
     $imap = $resultado['servidor_imap'];
     $pt_imap = $resultado['puerto_imap'];
-    echo "alias_cuenta = ".$alias_cuenta."<br>";
-    echo "email = ".$email."<br>";
-    echo "pswd = ".$pswd."<br>";
-    echo "smtp = ".$smtp."<br>";
-    echo "pt_smtp = ".$pt_smtp."<br>";
-    echo "imap = ".$imap."<br>";
-    echo "pt_imap = ".$pt_imap."<br>";
+    //echo "alias_cuenta = ".$alias_cuenta."<br>";
+    //echo "email = ".$email."<br>";
+    //echo "pswd = ".$pswd."<br>";
+    //echo "smtp = ".$smtp."<br>";
+    //echo "pt_smtp = ".$pt_smtp."<br>";
+    //echo "imap = ".$imap."<br>";
+    //echo "pt_imap = ".$pt_imap."<br>";
     $respuesta = array($alias_cuenta,$email,$pswd,$smtp,$pt_smtp,$imap,$pt_imap);
     return $respuesta;
 }
 
 
 function buscar_correo_coincidente($emails,$inbox,$asunto){
-    echo "ENTRO AL METODO buscar_correo_coincidente"."<br>";
-    $formato = 'Y-m-d H:i:s';
-    date_default_timezone_set("America/Bogota");
+    //echo "ENTRO AL METODO buscar_correo_coincidente"."<br>";
+    //$formato = 'Y-m-d H:i:s';
+    //date_default_timezone_set("America/Bogota");
     $correo_valido = "";
     $correo_encontrado = false;
-    $cadena_asunto = "";
-    $fecha_hora = "";
-    $fecha_hora_arrivo = "";
-    $tiempo_latencia = "";
+    //$cadena_asunto = "";
+    //$fecha_hora = "";
+    //$fecha_hora_arrivo = "";
+    //$tiempo_latencia = "";
     $j = 1;
 
     foreach($emails as $email_number){
-        echo "CORREO # ".$j."<br>";
+        //echo "CORREO # ".$j."<br>";
         $header = imap_headerinfo($inbox,$email_number);
         $subject = $header->subject;
-        echo "EL CORREO **ENTRANTE** TIENE EL SIGUIENTE ASUNTO: ".$subject."<br>";
-        echo "EL CORREO **ENVIADO** TIENE EL SIGUIENTE ASUNTO:".$asunto."<br>";
+        //echo "EL CORREO **ENTRANTE** TIENE EL SIGUIENTE ASUNTO: ".$subject."<br>";
+        //echo "EL CORREO **ENVIADO** TIENE EL SIGUIENTE ASUNTO:".$asunto."<br>";
         $correo_valido = strcmp($subject,$asunto);
 
         //COMPRUEBO SI EL ASUNTO DEL CORREO ENTRANTE TIENE EL MISMO ASUNTO DEL CORREO ENVIADO DURANTE LA ULTIMA PRUEBA EJECUTADA
         if($correo_valido === 0){
-            echo "EL CORREO RECIBIDO TIENE UN ASUNTO **IDENTICO** AL DEL ULTIMO CORREO ENVIADO DE PRUEBA, POR LO TANTO CONCLUYO QUE EL CORREO DE PRUEBA **SI** LLEGO"."<br>";
+            //echo "EL CORREO RECIBIDO TIENE UN ASUNTO **IDENTICO** AL DEL ULTIMO CORREO ENVIADO DE PRUEBA, POR LO TANTO CONCLUYO QUE EL CORREO DE PRUEBA **SI** LLEGO"."<br>";
             $correo_encontrado = true;
-            $cadena_asunto = explode("/",$subject);
-            $fecha_hora = $cadena_asunto[1];
-            echo "ENTONCES CAPTURO LA HORA DE LLEGADA DEL CORREO COINCIDENTE Y CALCULO LA DIFERENCIA EN SEGUNDOS ENTRE LA HORA DE ENVIO Y LA HORA DE RECEPCION PARA OBTENER LA LATENCIA"."<br>";
-            $fecha_hora_arrivo = date($formato);
-            $tiempo_latencia = calcular_diferencia_segundos($fecha_hora,$fecha_hora_arrivo);
-            echo "AL FINAL DEJO EL CORREO COMO LEIDO Y LO ENVIO A LA CARPETA DE INSERTADOS"."<br>";
+            //$cadena_asunto = explode("/",$subject);
+            //$fecha_hora = $cadena_asunto[1];
+            //echo "ENTONCES CAPTURO LA HORA DE LLEGADA DEL CORREO COINCIDENTE Y CALCULO LA DIFERENCIA EN SEGUNDOS ENTRE LA HORA DE ENVIO Y LA HORA DE RECEPCION PARA OBTENER LA LATENCIA"."<br>";
+            //$fecha_hora_arrivo = date($formato);
+            //$tiempo_latencia = calcular_diferencia_segundos($fecha_hora,$fecha_hora_arrivo);
+            //echo "AL FINAL DEJO EL CORREO COMO LEIDO Y LO ENVIO A LA CARPETA DE INSERTADOS"."<br>";
             $leido = imap_setflag_full($inbox, $email_number, "\\Seen "); //banderas en los msjs - deja el mensaje como leido
-            echo "¿CORREO LEIDO EN LA BANDEJA DE ENTRADA? ";
-            echo $leido == true ? "TRUE"."<br>" : "FALSE"."<br>";
+            //echo "¿CORREO LEIDO EN LA BANDEJA DE ENTRADA? ";
+            //echo $leido == true ? "TRUE"."<br>" : "FALSE"."<br>";
             $movido = imap_mail_copy($inbox, 1, 'Insertado'); //copia el correo desde la bandeja de entrada a la carpeta insertado
-            echo "¿CORREO MOVIDO A LA CARPETA INSERTADO? ";
-            echo $movido == true ? "TRUE"."<br>" : "FALSE"."<br>";
+            //echo "¿CORREO MOVIDO A LA CARPETA INSERTADO? ";
+            //echo $movido == true ? "TRUE"."<br>" : "FALSE"."<br>";
             $borrado = imap_delete($inbox, 1); //elimina el correo de la bandeja de entrada
-            echo "¿CORREO BORRADO DE LA BANDEJA DE ENTRADA? ";
-            echo $borrado == true ? "TRUE"."<br>" : "FALSE"."<br>";
+            //echo "¿CORREO BORRADO DE LA BANDEJA DE ENTRADA? ";
+            //echo $borrado == true ? "TRUE"."<br>" : "FALSE"."<br>";
             $cerrado = imap_close($inbox);  //cierra el acceso al correo
-            echo "¿BANDEJA DE CORREO CERRADA? ";
-            echo $cerrado == true ? "TRUE"."<br>" : "FALSE"."<br>";
+            //echo "¿BANDEJA DE CORREO CERRADA? ";
+            //echo $cerrado == true ? "TRUE"."<br>" : "FALSE"."<br>";
+            break;
         }else{
-            echo "EL CORREO RECIBIDO TIENE UN ASUNTO **DIFERENTE** AL DEL ULTIMO CORREO ENVIADO DE PRUEBA ENTONCES DEBO SEGUIR BUSCANDO EN LOS DEMAS CORREOS NUEVOS"."<br>";
+            //echo "EL CORREO RECIBIDO TIENE UN ASUNTO **DIFERENTE** AL DEL ULTIMO CORREO ENVIADO DE PRUEBA ENTONCES DEBO SEGUIR BUSCANDO EN LOS DEMAS CORREOS NUEVOS"."<br>";
         }
         $j++;
     }
 
-    echo "¿CORREO DE PRUEBA ENCONTRADO CON EXITO?";
-    echo $correo_encontrado == true ? "TRUE"."<br>":"FALSE"."<br>";
-    echo "DEVUELVO LAS SIGUIENTES VARIABLES: "."<br>";
-    echo "fecha_hora_arrivo = ".$fecha_hora_arrivo."<br>";
-    echo "tiempo_latencia = ".$tiempo_latencia."<br>";
-    $respuesta = array($correo_encontrado,$fecha_hora_arrivo,$tiempo_latencia);
-    return $respuesta;
+    //echo "¿CORREO DE PRUEBA ENCONTRADO CON EXITO?";
+    //echo $correo_encontrado == true ? "TRUE"."<br>":"FALSE"."<br>";
+    //echo "DEVUELVO LAS SIGUIENTES VARIABLES: "."<br>";
+    //echo "fecha_hora_arrivo = ".$fecha_hora_arrivo."<br>";
+    //echo "tiempo_latencia = ".$tiempo_latencia."<br>";
+    //$respuesta = array($correo_encontrado,$fecha_hora_arrivo,$tiempo_latencia);
+    //return $respuesta;
+    return $correo_encontrado;
 }
 
 
 function calcular_diferencia_segundos($fecha_menor, $fecha_mayor){
     date_default_timezone_set("America/Bogota");
     $formato = 'Y-m-d H:i:s';
-    echo "ESTOY EN EL METODO calcular_diferencia_segundos"."<br>";
-    echo "RECIBO LAS SIGUIENTES FECHAS"."<br>";
-    echo "fecha_menor = ".$fecha_menor."<br>";
-    echo "fecha_mayor = ".$fecha_mayor."<br>";
+    //echo "ESTOY EN EL METODO calcular_diferencia_segundos"."<br>";
+    //echo "RECIBO LAS SIGUIENTES FECHAS"."<br>";
+    //echo "fecha_menor = ".$fecha_menor."<br>";
+    //echo "fecha_mayor = ".$fecha_mayor."<br>";
     $date1 = new DateTime($fecha_menor);
-    echo "date1 = ".date_format($date1,$formato)."<br>";
+    //echo "date1 = ".date_format($date1,$formato)."<br>";
     $date2 = new DateTime($fecha_mayor);
-    echo "date2 = ".date_format($date2,$formato)."<br>";
+    //echo "date2 = ".date_format($date2,$formato)."<br>";
 
     $diff = $date1->diff($date2);
     $segundos = ( ($diff->days * 24 ) * 60 ) + ( $diff->i * 60 ) + $diff->s;
-    echo "LA DIFERENCIA ENTRE LAS DOS FECHAS EQUIVALE A ".$segundos." SEGUNDOS"."<br>";
+    //echo "LA DIFERENCIA ENTRE LAS DOS FECHAS EQUIVALE A ".$segundos." SEGUNDOS"."<br>";
     return $segundos;
 
 }
@@ -319,7 +718,7 @@ function calcular_diferencia_segundos($fecha_menor, $fecha_mayor){
 
 
 function insertar_prueba_ejecutada($objCorreo,$franja,$envio,$error_envio,$recepcion,$latencia,$observaciones,$id_prueba,$error_recibo,$diagnostico_envio,$diagnostico_recibo){
-    echo "ENTRO AL METODO insertar_prueba_ejecutada"."<br>";
+    //echo "ENTRO AL METODO insertar_prueba_ejecutada"."<br>";
     if($recepcion == "NO ESTABLECIDA"){
         $query = "INSERT INTO prueba_ejecutada(franja_ejecucion,fecha_envio,diagnostico_envio,error_envio,fecha_recepcion,diagnostico_recibo,error_recibo,tiempo_latencia,observaciones_prueba,id_prueba_env_rec)
         VALUES('".$franja."','".$envio."','".$diagnostico_envio."','".$error_envio."',null,'".$diagnostico_recibo."','".$error_recibo."','".$latencia."','".$observaciones."','".$id_prueba."')";
@@ -327,17 +726,17 @@ function insertar_prueba_ejecutada($objCorreo,$franja,$envio,$error_envio,$recep
         $query = "INSERT INTO prueba_ejecutada(franja_ejecucion,fecha_envio,diagnostico_envio,error_envio,fecha_recepcion,diagnostico_recibo,error_recibo,tiempo_latencia,observaciones_prueba,id_prueba_env_rec)
         VALUES('".$franja."','".$envio."','".$diagnostico_envio."','".$error_envio."','".$recepcion."','".$diagnostico_recibo."','".$error_recibo."','".$latencia."','".$observaciones."','".$id_prueba."')";
     }
-    echo "query = ".$query."<br>";
+    //echo "query = ".$query."<br>";
     $resultado = $objCorreo->insertar($query);
-    echo "INSERTADO? ";
-    echo $resultado == true ? "TRUE"."<br>":"FALSE"."<br>";
+    //echo "INSERTADO? ";
+    //echo $resultado == true ? "TRUE"."<br>":"FALSE"."<br>";
 }
 
 
 
 function imprimir_cadena_astericos($cadena,$cant){
     for($i=0;$i<$cant;$i++){
-        echo $cadena;
+        //echo $cadena;
     }
 }
 
