@@ -27,7 +27,7 @@ function iniciar_test_correo($objCorreo){
     //echo "PRIMERO SE EJECUTA EL ENVIO TODOS LOS CORREOS DE PRUEBA"."<br>";
     while ($row = mysqli_fetch_array($ids_cuentas)){
         $id_origen = $row['id_cuenta_correo'];
-        echo "id_origen = ".$id_origen."<br>";
+        //echo "id_origen = ".$id_origen."<br>";
         $resultados_envio_cuenta = ejecutar_envio_correos($id_origen,$objCorreo);
         $resultados_envio[$id_origen] = $resultados_envio_cuenta;
     }

@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Formulario Gestion Aplicacion</title>
+    <meta charset="utf-8"/>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="../js/gestion_cuenta.js"></script>
+    <style>
+        .preloader {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+            background-image: url('../cargando.gif');
+            background-repeat: no-repeat;
+            background-color: #c7d3e3b3;
+            background-position: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="esperando"></div>
+    <h1>GESTION DE CUENTAS</h1>
+    <hr/>
+    <form id="update_cuenta" name="update_cuenta">
+        <h1>CREAR NUEVA CUENTA</h1>
+        <label for="dir_email">Dirección e-mail</label>
+        <input type="email" id="dir_email" name="dir_email"/>
+        <br/>
+        <label for="alias_email">Alias e-mail</label>
+        <input type="text" id="alias_email" name="alias_email"/>
+        <br/>
+        <label for="pswd_email">Password e-mail</label>
+        <input type="password" id="pswd_email" name="pswd_email"/>
+        <br/>
+        <label for="serv_smtp">Servidor SMTP</label>
+        <input type="text" id="serv_smtp" name="serv_smtp"/>
+        <br/>
+        <label for="port_smtp">Puerto SMTP</label>
+        <input type="number" id="port_smtp" name="port_smtp"/>
+        <br/>
+        <label for="serv_imap">Servidor IMAP</label>
+        <input type="text" id="serv_imap" name="serv_imap"/>
+        <br/>
+        <label for="port_imap">Puerto IMAP</label>
+        <input type="number" id="port_imap" name="port_imap"/>
+        <br/>
+        <button type="button" id="crear_cuenta">Agregar cuenta</button>
+    </form>
+</body>
+</html>

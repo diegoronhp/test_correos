@@ -1,6 +1,6 @@
 <?php
 
-include_once "configs.php";
+include_once "../model/bd/configs.php";
 // Conexión a bases de datos
 
 // Conexión a SQL
