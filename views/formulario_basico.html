@@ -3,9 +3,6 @@
 <head>
     <title>Formulario Gestion Aplicacion</title>
     <meta charset="utf-8"/>
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
-            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
-    <script src="../js/gestion_cuenta.js"></script>
     <style>
         .preloader {
             position: absolute;
@@ -19,6 +16,11 @@
             background-color: #c7d3e3b3;
             background-position: center;
         }
+        .errores{
+            border: 1px solid red;
+            padding: 20px;
+            color: red;
+        }
     </style>
 </head>
 <body>
@@ -27,11 +29,11 @@
     <hr/>
     <form id="update_cuenta" name="update_cuenta">
         <h1>CREAR NUEVA CUENTA</h1>
-        <label for="dir_email">Dirección e-mail</label>
-        <input type="email" id="dir_email" name="dir_email"/>
-        <br/>
         <label for="alias_email">Alias e-mail</label>
         <input type="text" id="alias_email" name="alias_email"/>
+        <br/>
+        <label for="dir_email">Dirección e-mail</label>
+        <input type="email" id="dir_email" name="dir_email"/>
         <br/>
         <label for="pswd_email">Password e-mail</label>
         <input type="password" id="pswd_email" name="pswd_email"/>
@@ -48,7 +50,28 @@
         <label for="port_imap">Puerto IMAP</label>
         <input type="number" id="port_imap" name="port_imap"/>
         <br/>
+        <br/>
         <button type="button" id="crear_cuenta">Agregar cuenta</button>
     </form>
+    <br/>
+    <div id="errores_agregar"></div>
+    <hr/>
+    <h1>CONSULTAR Y/O MODIFICAR CUENTA EXISTENTE</h1>
+    <div id="tabla_cuentas"></div>
+    <br/>
+    <div id="errores_editar"></div>
+    <hr/>
+    <h1>CONSULTAR Y/O MODIFICAR TIEMPO DE LATENCIA</h1>
+
+    <form id="update_tiempo" name="update_tiempo">
+        <label for="tiempo_latencia">Tiempo de latencia en segundos</label>
+        <input type="number" id="tiempo_latencia" name="tiempo_latencia" disabled/>
+        <input type="button" id="editar_tiempo" value="Editar">
+    </form>
+    <br/>
+    <div id="errores_tiempo"></div>
+    <script src="https://code.jquery.com/jquery-1.12.4.min.js"
+            integrity="sha256-ZosEbRLbNQzLpnKIkEdrPv7lOy9C27hHQ+Xp8a4MxAQ=" crossorigin="anonymous"></script>
+    <script src="../js/gestion_cuenta.js"></script>
 </body>
 </html>
