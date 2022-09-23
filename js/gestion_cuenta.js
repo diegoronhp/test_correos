@@ -414,6 +414,35 @@ $(function(){
             }
         }
     });
+
+    $('#ejecutar_test').click(function(event){
+        var act = "ejecutar";
+        var datos_form = new FormData;
+        datos_form.append("ejecutar",act);
+        $.ajax({
+            url: "../controller/CorreoController.php",
+            type: "POST",
+            cache: false,
+            contentType: false,
+            processData: false,
+            data: datos_form,
+            beforeSend: function(){
+                console.log("ESPERANDO RESPUESTA DEL SERVIDOR");
+                $("#esperando").addClass('preloader');
+            },
+            success: function(data){
+                var respuesta = JSON.parse(data);
+                console.log("MENSAJE = "+respuesta.mensaje);
+                alert(respuesta.mensaje);
+                $("#esperando").removeClass('preloader');
+            },
+            error: function(){
+                var respuesta = "Error de conexion con el servidor de la aplicacion";
+                console.log("ERROR = "+respuesta);
+                $("#esperando").removeClass('preloader');
+            }
+        })
+    })
 });
 
 

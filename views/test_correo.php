@@ -9,15 +9,10 @@ require '../model/bd/configs.php';
 require '../model/Correo.class.php';
 require '../vendor/autoload.php';
 
-$objCorreo = new Correo();
 
-
-iniciar_test_correo($objCorreo);
-
-
-function iniciar_test_correo($objCorreo){
+function iniciar_test_correo(){
     //echo "ENTRO AL METODO iniciar_test_correo"."<br>";
-
+    $objCorreo = new Correo();
     $resultados_envio = array();
     $resultados_recepcion = array();
     $query = "SELECT id_cuenta_correo FROM cuenta_correo";

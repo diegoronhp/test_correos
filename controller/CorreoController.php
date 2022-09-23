@@ -2,7 +2,22 @@
 //error_reporting(E_ALL);
 error_reporting(0);
 
-require '../model/Correo.class.php';
+//require '../model/Correo.class.php';
+require '../views/test_correo.php';
+
+if(isset($_POST["ejecutar"])){
+    date_default_timezone_set("America/Bogota");
+    $formato = 'Y-m-d H:i:s';
+    $mensaje = "El test de correo ha sido ejecutado con exito durante un tiempo de ";
+    $antes = date($formato);
+    //LLAMAMOS AL METODO QUE EJECUTA EL TEST DE CORREO
+    iniciar_test_correo();
+    $despues = date($formato);
+    $dif_segundos = calcular_diferencia_segundos($antes,$despues);
+    $mensaje .= $dif_segundos." segundos, ahora puede consultar los resultados obtenidos de las pruebas en su cuenta de correo";
+    $respuesta = array("mensaje"=>$mensaje);
+    echo json_encode($respuesta);
+}
 
 if(isset($_POST["sltiempo"])){
     $objCorreo = new Correo();
