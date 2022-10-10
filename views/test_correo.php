@@ -1,6 +1,6 @@
 <?php
-error_reporting(E_ALL);
-//error_reporting(0);
+//error_reporting(E_ALL);
+error_reporting(0);
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -8,9 +8,6 @@ use PHPMailer\PHPMailer\Exception;
 require '../model/bd/configs.php';
 require '../model/Correo.class.php';
 require '../vendor/autoload.php';
-
-//INVOCACION DEL METODO QUE SE ENCRAGA DE EJECUTAR EL TEST DE CORREOS
-iniciar_test_correo();
 
 
 function iniciar_test_correo(){

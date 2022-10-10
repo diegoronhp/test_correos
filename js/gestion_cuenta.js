@@ -18,6 +18,7 @@ function consultar_cuentas(){
             var respuesta = JSON.parse(data);
             //console.log(respuesta);
             $("#tabla_cuentas").html(respuesta);
+
         },
         error: function(){
             var respuesta = "No hay cuentas para mostrar";
