@@ -348,11 +348,14 @@ function recepcion_correo_cuenta($resultado_prueba_envio,$objCorreo){
     //$arrivo_correo = "";
     $error_conexion = "";
     $error_recibo = "Sin error de recibo";
+    $error_imap = "";
     $inbox = false;
 
 
     try{
         $inbox = imap_open($hostname,$username,$password);
+        $error_imap = imap_last_error();
+        echo "HASTA ESTE PUNTO HAY ALGUN ERROR A LA CONEXION IMAP? ".$error_imap."<br>";
         echo "¿ES POSIBLE ABRIR EL INBOX DEL SERVIDOR = ".$hostname."? ";
         echo $inbox == true ? "TRUE"."<br>" : "FALSE"."<br>";
         $emails = imap_search($inbox, 'SUBJECT "TEST DE CORREO" UNSEEN'); //ESTE FILTRO FUNCIONA
@@ -379,10 +382,27 @@ function recepcion_correo_cuenta($resultado_prueba_envio,$objCorreo){
         echo "**NO** HAY CONEXION CON EL BUZON DE LA CUENTA CON LAS CREDENCIALES username = ".$username." / password = ".$password." MEDIANTE EL SERVIDOR hostname = ".$hostname."<br>";
         $error_conexion = "Se detecta el siguiente error: ".imap_last_error();
         echo "EL ERROR DETECTADO DURANTE LA CONEXION error_conexion = ".$error_conexion."<br>";
+
+        //MANEJO DE LA EXCEPCION ANTE LA DETECCION DEL ERROR: too many login failures A CAUSA DE NO PODER ESTABLECER CONEXION CON EL SERVIDOR IMAP
+        if((imap_last_error() == 'Too many login failures')&&($diagnostico_envio == "Envio exitoso")){
+            echo "HA SIDO DETECTADA UNA EXCEPCION CON EL ERROR (Too many login failures) PERO EL CORREO DE PRUEBA **SI** FUE ENVIADO, POR LO TANTO SE MANEJA EL ERROR PARA APROBAR LA PRUEBA";
+            $fecha_hora_arrivo = date($formato);
+            $mensaje = "El mensaje de correo proveniente de la cuenta (".$cuenta_origen.") ha sido enviado con exito para la prueba ejecutada en la fecha (".$fecha_envio."), sin embargo no fue posible acceder al buzon de la cuenta (".$username.") por error en el login al servidor imap (".$hostname.")";
+            $resultado_recepcion = true;
+        }
     }
 
     echo "¿CORREO ENCONTRADO? ";
     echo $resultado_recepcion == true ? "TRUE"."<br>" : "FALSE"."<br>";
+
+
+    //MANEJO DE LA EXCEPCION ANTE LA DETECCION DEL ERROR: too many login failures A CAUSA DE NO PODER ESTABLECER CONEXION CON EL SERVIDOR IMAP
+    if(($error_imap == 'Too many login failures') && ($inbox == false) && ($diagnostico_envio == "Envio exitoso")){
+        echo "NO HA SIDO POSIBLE ACCEDER AL BUZON DE LA CUENTA: ".$username." COMO CONSECUENCIA DE ALGUNA RESTRICCION EN EL LIMITE DE LOGINS EN EL SERVIDOR imap DE ESTA CUENTA, NO OBSTANTE EL CORREO DE PRUEBA ENVIADO DESDE LA CUENTA: ".$cuenta_origen." FUE ENVIADO EXITOSAMENTE"."<br>";
+        $fecha_hora_arrivo = date($formato);
+        $mensaje = "El mensaje de correo proveniente de la cuenta (".$cuenta_origen.") ha sido enviado con exito para la prueba ejecutada en la fecha (".$fecha_envio."), sin embargo no fue posible acceder al buzon de la cuenta (".$username.") a causa del error en el login al servidor imap (".$hostname.")";
+        $resultado_recepcion = true;
+    }
 
     if($resultado_recepcion == false){
         echo "DESPUES DE ESPERAR POR ".$tiempo_limite." SEGUNDOS SE COMPRUEBA QUE NO HA LLEGADO EL CORREO DE PRUEBA ESPERADO, ASI QUE NOTIFICO ESTE ERROR"."<br>";
